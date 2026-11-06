@@ -87,9 +87,22 @@ with tab1:
                 st.success(f"Generated! ID: **{item_id}**")
                 
                 # Generate QR code image
-                img = qrcode.make(item_id)
-                buf = BytesIO()
-                img.save(buf, format="PNG")
+                    # Generate high-contrast QR code image
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(item_id)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    
+                
+                
                 
                 st.image(buf.getvalue(), caption=f"Sticker for: {item_name} (ID: {item_id})", width=180)
                 st.info("📲 Take a screenshot of this QR code to stick on your item!")
