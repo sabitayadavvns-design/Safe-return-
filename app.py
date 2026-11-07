@@ -35,9 +35,48 @@ st.markdown("""
 st.title("🎒 SafeReturn")
 st.caption("Smart Campus Lost & Found System")
 
-# Session state initialization for mock database
+# Session state initialization for mock database & demo items
 if "items_db" not in st.session_state:
-    st.session_state.items_db = {}
+    st.session_state.items_db = {
+        "SR-3216": {
+            "name": "Aditya Yadav",
+            "class": "9-B",
+            "item_name": "Blue lunch Box",
+            "status": "Safe",
+            "zone": "None",
+            "message": "",
+            "thank_you": ""
+        }
+    }
+
+# Check if someone scanned a QR code containing an item query parameter in the URL
+query_params = st.query_params
+scanned_item_id = query_params.get("item", None)
+
+if scanned_item_id:
+    st.markdown("---")
+    st.subheader("🔍 Scanned Item Lookup")
+    if scanned_item_id in st.session_state.items_db:
+        item_info = st.session_state.items_db[scanned_item_id]
+        st.success(f"Found Item ID: **{scanned_item_id}**")
+        st.write(f"🎒 **Item:** {item_info['item_name']}")
+        st.write(f"👤 **Owner:** {item_info['name']} (Class: {item_info['class']})")
+        
+        # Campus zones dropdown for the finder
+        zone_options = ["Main Gate", "Cafeteria", "Science Block", "Sports Ground", "Library", "Bus Bay"]
+        found_zone = st.selectbox("Select Campus Zone where found:", zone_options, key="scanned_zone")
+        
+        finder_message = st.text_area("Optional message for owner (e.g., 'Safe with me at...')", key="scanned_msg")
+        
+        if st.button("Notify Owner & Claim Karma"):
+            st.session_state.items_db[scanned_item_id]["status"] = "Found"
+            st.session_state.items_db[scanned_item_id]["zone"] = found_zone
+            st.session_state.items_db[scanned_item_id]["message"] = finder_message
+            st.success("🎉 Notification sent to owner! Thank you for being an honest finder.")
+            st.balloons()
+    else:
+        st.warning(f"Item ID **{scanned_item_id}** is valid or registered in the live session.")
+    st.markdown("---")
 
 # Tabs for Mobile Navigation
 tab1, tab2, tab3 = st.tabs(["🏷️ Register Tag", "🔍 Finder View", "🏆 Karma Hub"])
@@ -49,11 +88,11 @@ with tab1:
     st.subheader("Create a Smart Tag")
     st.write("Generate a privacy-first QR tag for your valuable item.")
     
-    student_name = st.text_input("Your Name:")
-    student_class = st.text_input("Class / Section (e.g., 9-B):")
-    item_name = st.text_input("Item Description (e.g., Blue Water Bottle):")
+    student_name = st.text_input("Your Name:", key="reg_name")
+    student_class = st.text_input("Class / Section (e.g., 9-B):", key="reg_class")
+    item_name = st.text_input("Item Description (e.g., Blue Water Bottle):", key="reg_item")
     
-    if st.button("Generate QR Code"):
+    if st.button("Generate QR Code", key="reg_btn"):
         if student_name and student_class and item_name:
             # Generate a unique secure ID
             item_id = f"SR-{random.randint(1000, 9999)}"
@@ -73,7 +112,6 @@ with tab1:
 
             # Encode the full live web app URL with the item ID so scanning opens it directly
             app_url = f"https://penfvm3xpyxjjm2xwi6iyk.streamlit.app/?item={item_id}"
-            
 
             # Generate high-contrast QR code image containing the live link
             qr = qrcode.QRCode(
@@ -90,30 +128,30 @@ with tab1:
             img.save(buf, format="PNG")
 
             st.image(buf.getvalue(), caption=f"Tag for {item_name} ({student_name})")
-            st.info("📱 When parents scan this QR code with their phone camera, it will instantly open the link!")
+            st.info("📱 When parents scan this QR code with their phone camera, it will instantly open the item details!")
         else:
             st.error("Please fill in all details.")
 
 # ========================================
-# TAB 2: FINDER VIEW (SCAN QR & ZONE TRACKING)
+# TAB 2: FINDER VIEW (MANUAL LOOKUP)
 # ========================================
 with tab2:
     st.subheader("Found an Item?")
-    st.write("Scan a SafeReturn tag or enter its ID to notify the owner.")
+    st.write("Enter its ID to notify the owner.")
     
-    found_id = st.text_input("Enter Item ID (from QR tag):")
+    found_id = st.text_input("Enter Item ID (from QR tag):", key="manual_id")
     
     if found_id:
         if found_id in st.session_state.items_db:
-            st.info(f"Looking up item: **{found_id}**")
+            item_info = st.session_state.items_db[found_id]
+            st.info(f"Looking up item: **{found_id}** ({item_info['item_name']} - {item_info['name']})")
             
-            # Campus zones dropdown
             zone_options = ["Main Gate", "Cafeteria", "Science Block", "Sports Ground", "Library", "Bus Bay"]
-            found_zone = st.selectbox("Select Campus Zone where found:", zone_options)
+            found_zone = st.selectbox("Select Campus Zone where found:", zone_options, key=" manual_zone")
             
-            finder_message = st.text_area("Optional message for owner (e.g., 'Safe with me at...')")
+            finder_message = st.text_area("Optional message for owner:", key="manual_msg")
             
-            if st.button("Notify Owner & Claim Karma"):
+            if st.button("Notify Owner & Claim Karma", key="manual_btn"):
                 st.session_state.items_db[found_id]["status"] = "Found"
                 st.session_state.items_db[found_id]["zone"] = found_zone
                 st.session_state.items_db[found_id]["message"] = finder_message
@@ -121,7 +159,7 @@ with tab2:
                 st.success("🎉 Notification sent to owner! Thank you for being an honest finder.")
                 st.balloons()
         else:
-            st.error("Item ID not found in the system. Please check the code.")
+            st.error("Item ID not found in the system.")
 
 # ========================================
 # TAB 3: KARMA HUB (LEADERBOARD)
@@ -130,7 +168,6 @@ with tab3:
     st.subheader("🏆 Honest Finder Karma Hub")
     st.write("Recognizing students who make our school trustworthy and safe.")
     
-    # Leaderboard display
     st.markdown("""
     | Rank | Student Name | Class | Karma Points | Badges |
     | :--- | :--- | :--- | :--- | :--- |
@@ -140,4 +177,4 @@ with tab3:
     """)
     
     st.info("💡 Return lost items using SafeReturn to earn karma points and school recognition badges!")
-    
+        
