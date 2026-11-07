@@ -71,14 +71,17 @@ with tab1:
             
             st.success(f"Generated! ID: **{item_id}**")
 
-            # Generate high-contrast QR code image
+            # Encode the full live web app URL with the item ID so scanning opens it directly
+            app_url = f"https://i6iyk.streamlit.app/?item={item_id}"
+
+            # Generate high-contrast QR code image containing the live link
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_M,
                 box_size=10,
                 border=4,
             )
-            qr.add_data(item_id)
+            qr.add_data(app_url)
             qr.make(fit=True)
             img = qr.make_image(fill_color="black", back_color="white")
             
@@ -86,7 +89,7 @@ with tab1:
             img.save(buf, format="PNG")
 
             st.image(buf.getvalue(), caption=f"Tag for {item_name} ({student_name})")
-            st.info("📱 Take a screenshot of this QR code to attach to your item!")
+            st.info("📱 When parents scan this QR code with their phone camera, it will instantly open the link!")
         else:
             st.error("Please fill in all details.")
 
@@ -137,6 +140,3 @@ with tab3:
     
     st.info("💡 Return lost items using SafeReturn to earn karma points and school recognition badges!")
     
-
- 
-                    
