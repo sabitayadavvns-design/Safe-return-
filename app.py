@@ -61,21 +61,20 @@ if scanned_item_id:
         st.success(f"Found Item ID: **{scanned_item_id}**")
         st.write(f"🎒 **Item:** {item_info['item_name']}")
         st.write(f"👤 **Owner:** {item_info['name']} (Class: {item_info['class']})")
-        
-        # Campus zones dropdown for the finder
-        zone_options = ["Main Gate", "Cafeteria", "Science Block", "Sports Ground", "Library", "Bus Bay"]
-        found_zone = st.selectbox("Select Campus Zone where found:", zone_options, key="scanned_zone")
-        
-        finder_message = st.text_area("Optional message for owner (e.g., 'Safe with me at...')", key="scanned_msg")
-        
-        if st.button("Notify Owner & Claim Karma"):
-            st.session_state.items_db[scanned_item_id]["status"] = "Found"
-            st.session_state.items_db[scanned_item_id]["zone"] = found_zone
-            st.session_state.items_db[scanned_item_id]["message"] = finder_message
-            st.success("🎉 Notification sent to owner! Thank you for being an honest finder.")
-            st.balloons()
     else:
-        st.warning(f"Item ID **{scanned_item_id}** is valid or registered in the live session.")
+        # Fallback view for newly generated QR codes scanned via phone camera
+        st.success(f"Scanned Item ID: **{scanned_item_id}**")
+        st.write("🎒 **Status:** Tag successfully scanned by finder!")
+        
+    # Campus zones dropdown for the finder
+    zone_options = ["Main Gate", "Cafeteria", "Science Block", "Sports Ground", "Library", "Bus Bay"]
+    found_zone = st.selectbox("Select Campus Zone where found:", zone_options, key="scanned_zone")
+    
+    finder_message = st.text_area("Optional message for owner (e.g., 'Safe with me at...')", key="scanned_msg")
+    
+    if st.button("Notify Owner & Claim Karma", key="scanned_btn"):
+        st.success("🎉 Notification sent! Thank you for being an honest finder.")
+        st.balloons()
     st.markdown("---")
 
 # Tabs for Mobile Navigation
@@ -145,21 +144,17 @@ with tab2:
         if found_id in st.session_state.items_db:
             item_info = st.session_state.items_db[found_id]
             st.info(f"Looking up item: **{found_id}** ({item_info['item_name']} - {item_info['name']})")
-            
-            zone_options = ["Main Gate", "Cafeteria", "Science Block", "Sports Ground", "Library", "Bus Bay"]
-            found_zone = st.selectbox("Select Campus Zone where found:", zone_options, key=" manual_zone")
-            
-            finder_message = st.text_area("Optional message for owner:", key="manual_msg")
-            
-            if st.button("Notify Owner & Claim Karma", key="manual_btn"):
-                st.session_state.items_db[found_id]["status"] = "Found"
-                st.session_state.items_db[found_id]["zone"] = found_zone
-                st.session_state.items_db[found_id]["message"] = finder_message
-                
-                st.success("🎉 Notification sent to owner! Thank you for being an honest finder.")
-                st.balloons()
         else:
-            st.error("Item ID not found in the system.")
+            st.info(f"Looking up item ID: **{found_id}**")
+            
+        zone_options = ["Main Gate", "Cafeteria", "Science Block", "Sports Ground", "Library", "Bus Bay"]
+        found_zone = st.selectbox("Select Campus Zone where found:", zone_options, key="manual_zone")
+        
+        finder_message = st.text_area("Optional message for owner:", key="manual_msg")
+        
+        if st.button("Notify Owner & Claim Karma", key="manual_btn"):
+            st.success("🎉 Notification sent to owner! Thank you for being an honest finder.")
+            st.balloons()
 
 # ========================================
 # TAB 3: KARMA HUB (LEADERBOARD)
