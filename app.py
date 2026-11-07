@@ -1,4 +1,6 @@
 import streamlit as st
+import random
+import qrcode
 
 # --- INITIALIZE SESSION STATE ---
 if "admin_logged_in" not in st.session_state:
@@ -8,7 +10,7 @@ if "items_db" not in st.session_state:
     # Central mock database for our single school
     st.session_state.items_db = {
         "SR-1001": {"name": "Aarav Sharma", "class": "7-B", "item_name": "Blue Water Bottle", "zone": "Cafeteria", "status": "Found"},
-        "SR-1002": {"name": "Diya Patel", "class": "6-A", "item_name": "Math Textbook", "zone": "Sports Ground", "status": "Registered"}
+        "SR-1002": {"name": "Diya Patel", "class": "6-A", "item_name": "Math Textbook", "zone": "N/A", "status": "Registered"}
     }
 
 # --- TWO-LAYER SECURITY CONFIGURATION ---
@@ -26,17 +28,15 @@ app_mode = st.sidebar.radio("Navigate to:", ["Public: Register Item", "Public: S
 # ==========================================
 if app_mode == "Public: Register Item":
     st.title("📝 Student Item Registration")
-    st.write("Register a school item to generate your secure privacy tag.")
+    st.write("Register a school item to generate your secure privacy tag and instant QR code.")
     
     with st.form("registration_form"):
         student_name = st.text_input("Student Name")
         student_class = st.text_input("Class / Section (e.g., 7-B)")
         item_name = st.text_input("Item Description (e.g., Blue Water Bottle)")
-        submit_reg = st.form_submit_button("Generate SafeReturn ID")
+        submit_reg = st.form_submit_button("Generate SafeReturn ID & QR")
         
         if submit_reg and student_name and item_name:
-            # Generate a simple unique ID
-            import random
             new_id = f"SR-{random.randint(2000, 9999)}"
             
             st.session_state.items_db[new_id] = {
@@ -47,7 +47,18 @@ if app_mode == "Public: Register Item":
                 "status": "Registered"
             }
             st.success(f"Item successfully registered! Your Secure ID is: **{new_id}**")
-            st.info("Write this ID on your item or generate a QR code for it.")
+            
+            # --- AUTOMATIC QR CODE GENERATOR ---
+            # Creates a scannable QR code linking directly to the item report view
+            qr_data = f"https://safereturn.streamlit.app/?item={new_id}"
+            img = qrcode.make(qr_data)
+            
+            # Save temporarily and display
+            img_path = "temp_qr.png"
+            img.save(img_path)
+            
+            st.image(img_path, caption=f"QR Code for {item_name} ({new_id})", width=200)
+            st.info("📲 Take a screenshot of this QR code, print it out, and attach it securely to the student's item!")
 
 # ==========================================
 # 2. PUBLIC: SCAN FINDER VIEW (Anonymous Finder)
@@ -56,17 +67,16 @@ elif app_mode == "Public: Scan Finder View":
     st.title("📍 Found an Item?")
     st.write("Thank you for helping! Please select the zone where you found this item to alert the school coordinator anonymously.")
     
-    # Simulate scanning an item ID (or use query params)
+    # Allow selecting from registered items
     scanned_id = st.selectbox("Select Scanned Item ID", list(st.session_state.items_db.keys()))
     
     if scanned_id:
         item = st.session_state.items_db[scanned_id]
-        st.info(f"**Item Type:** {item['item_name']} (Owner details remain hidden for privacy)")
+        st.info(f"**Item Type:** {item['item_name']} (Owner details remain completely private)")
         
         found_zone = st.selectbox("Where did you find it?", ["Cafeteria", "Sports Ground", "Main Hall", "Library", "Bus Bay"])
         
         if st.button("Notify School Coordinator"):
-            # Update item status in database
             st.session_state.items_db[scanned_id]["zone"] = found_zone
             st.session_state.items_db[scanned_id]["status"] = "Found"
             
@@ -131,4 +141,4 @@ elif app_mode == "🔒 Staff Admin Dashboard":
                         st.rerun()
         else:
             st.info("🎉 All clear! No active lost items reported right now.")
-    
+        
