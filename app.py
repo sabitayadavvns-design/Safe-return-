@@ -62,7 +62,6 @@ if scanned_item_id:
         st.write(f"🎒 **Item:** {item_info['item_name']}")
         st.write(f"👤 **Owner:** {item_info['name']} (Class: {item_info['class']})")
     else:
-        # Fallback view for newly generated QR codes scanned via phone camera
         st.success(f"Scanned Item ID: **{scanned_item_id}**")
         st.write("🎒 **Status:** Tag successfully scanned by finder!")
         
@@ -87,6 +86,13 @@ with tab1:
     st.subheader("Create a Smart Tag")
     st.write("Generate a privacy-first QR tag for your valuable item.")
     
+    # Live App URL input so QR codes always point to your current deployment link
+    base_url = st.text_input(
+        "Paste your current Streamlit App URL here:", 
+        value="https://safe-return-.streamlit.app", 
+        help="Copy the URL from your browser address bar of this running app and paste it here."
+    )
+    
     student_name = st.text_input("Your Name:", key="reg_name")
     student_class = st.text_input("Class / Section (e.g., 9-B):", key="reg_class")
     item_name = st.text_input("Item Description (e.g., Blue Water Bottle):", key="reg_item")
@@ -109,8 +115,9 @@ with tab1:
             
             st.success(f"Generated! ID: **{item_id}**")
 
-            # Encode the full live web app URL with the item ID so scanning opens it directly
-            app_url = f"https://penfvm3xpyxjjm2xwi6iyk.streamlit.app/?item={item_id}"
+            # Clean up base URL to avoid double slashes and append query param correctly
+            clean_base = base_url.strip().rstrip("/")
+            app_url = f"{clean_base}/?item={item_id}"
 
             # Generate high-contrast QR code image containing the live link
             qr = qrcode.QRCode(
@@ -127,7 +134,7 @@ with tab1:
             img.save(buf, format="PNG")
 
             st.image(buf.getvalue(), caption=f"Tag for {item_name} ({student_name})")
-            st.info("📱 When parents scan this QR code with their phone camera, it will instantly open the item details!")
+            st.info(f"📱 QR Code points to: `{app_url}`. Scan it with your phone camera to test!")
         else:
             st.error("Please fill in all details.")
 
@@ -172,4 +179,4 @@ with tab3:
     """)
     
     st.info("💡 Return lost items using SafeReturn to earn karma points and school recognition badges!")
-        
+    
