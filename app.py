@@ -1,175 +1,134 @@
 import streamlit as st
-import qrcode
-from io import BytesIO
-import random
 
-# Page setup optimized for mobile view
-st.set_page_config(
-    page_title="SafeReturn Mobile",
-    page_icon="🎒",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
+# --- INITIALIZE SESSION STATE ---
+if "admin_logged_in" not in st.session_state:
+    st.session_state.admin_logged_in = False
 
-# Custom CSS for a native mobile app look
-st.markdown("""
-<style>
-    .main {
-        padding: 0px;
-    }
-    .stButton>button {
-        width: 100%;
-        border-radius: 8px;
-        height: 3em;
-        background-color: #FF4B4B;
-        color: white;
-        font-weight: bold;
-    }
-    h1 {
-        color: #FF4B4B;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# App Header
-st.title("🎒 SafeReturn")
-st.caption("Smart Campus Lost & Found System")
-
-# Session state initialization for mock database & demo items
 if "items_db" not in st.session_state:
+    # Central mock database for our single school
     st.session_state.items_db = {
-        "SR-3216": {
-            "name": "Aditya Yadav",
-            "class": "9-B",
-            "item_name": "Blue lunch Box",
-            "status": "Safe",
-            "zone": "None",
-            "message": "",
-            "thank_you": ""
-        }
+        "SR-1001": {"name": "Aarav Sharma", "class": "7-B", "item_name": "Blue Water Bottle", "zone": "Cafeteria", "status": "Found"},
+        "SR-1002": {"name": "Diya Patel", "class": "6-A", "item_name": "Math Textbook", "zone": "Sports Ground", "status": "Registered"}
     }
 
-# Check if someone scanned a QR code containing an item query parameter in the URL
-query_params = st.query_params
-scanned_item_id = query_params.get("item", None)
+# --- TWO-LAYER SECURITY CONFIGURATION ---
+AUTHORIZED_ADMINS = {
+    "+919876543210": "7842",
+    "+919811122233": "5591"
+}
 
-if scanned_item_id:
-    st.markdown("---")
-    st.subheader("🔍 Scanned Item Lookup")
-    if scanned_item_id in st.session_state.items_db:
-        item_info = st.session_state.items_db[scanned_item_id]
-        st.success(f"Found Item ID: **{scanned_item_id}**")
-        st.write(f"🎒 **Item:** {item_info['item_name']}")
-        st.write(f"👤 **Owner:** {item_info['name']} (Class: {item_info['class']})")
-    else:
-        # Fallback view for newly generated QR codes scanned via phone camera
-        st.success(f"Scanned Item ID: **{scanned_item_id}**")
-        st.write("🎒 **Status:** Tag successfully scanned by finder!")
+# --- APP SIDEBAR NAVIGATION ---
+st.sidebar.title("🎒 SafeReturn Portal")
+app_mode = st.sidebar.radio("Navigate to:", ["Public: Register Item", "Public: Scan Finder View", "🔒 Staff Admin Dashboard"])
+
+# ==========================================
+# 1. PUBLIC: REGISTER ITEM (Student / Parent)
+# ==========================================
+if app_mode == "Public: Register Item":
+    st.title("📝 Student Item Registration")
+    st.write("Register a school item to generate your secure privacy tag.")
+    
+    with st.form("registration_form"):
+        student_name = st.text_input("Student Name")
+        student_class = st.text_input("Class / Section (e.g., 7-B)")
+        item_name = st.text_input("Item Description (e.g., Blue Water Bottle)")
+        submit_reg = st.form_submit_button("Generate SafeReturn ID")
         
-    # Campus zones dropdown for the finder
-    zone_options = ["Main Gate", "Cafeteria", "Science Block", "Sports Ground", "Library", "Bus Bay"]
-    found_zone = st.selectbox("Select Campus Zone where found:", zone_options, key="scanned_zone")
-    
-    finder_message = st.text_area("Optional message for owner (e.g., 'Safe with me at...')", key="scanned_msg")
-    
-    if st.button("Notify Owner & Claim Karma", key="scanned_btn"):
-        st.success("🎉 Notification sent! Thank you for being an honest finder.")
-        st.balloons()
-    st.markdown("---")
-
-# Tabs for Mobile Navigation
-tab1, tab2, tab3 = st.tabs(["🏷️ Register Tag", "🔍 Finder View", "🏆 Karma Hub"])
-
-# ========================================
-# TAB 1: REGISTER ITEM & GENERATE QR
-# ========================================
-with tab1:
-    st.subheader("Create a Smart Tag")
-    st.write("Generate a privacy-first QR tag for your valuable item.")
-    
-    student_name = st.text_input("Your Name:", key="reg_name")
-    student_class = st.text_input("Class / Section (e.g., 9-B):", key="reg_class")
-    item_name = st.text_input("Item Description (e.g., Blue Water Bottle):", key="reg_item")
-    
-    if st.button("Generate QR Code", key="reg_btn"):
-        if student_name and student_class and item_name:
-            # Generate a unique secure ID
-            item_id = f"SR-{random.randint(1000, 9999)}"
+        if submit_reg and student_name and item_name:
+            # Generate a simple unique ID
+            import random
+            new_id = f"SR-{random.randint(2000, 9999)}"
             
-            # Save to mock database session state
-            st.session_state.items_db[item_id] = {
+            st.session_state.items_db[new_id] = {
                 "name": student_name,
                 "class": student_class,
                 "item_name": item_name,
-                "status": "Safe",
-                "zone": "None",
-                "message": "",
-                "thank_you": ""
+                "zone": "N/A",
+                "status": "Registered"
             }
+            st.success(f"Item successfully registered! Your Secure ID is: **{new_id}**")
+            st.info("Write this ID on your item or generate a QR code for it.")
+
+# ==========================================
+# 2. PUBLIC: SCAN FINDER VIEW (Anonymous Finder)
+# ==========================================
+elif app_mode == "Public: Scan Finder View":
+    st.title("📍 Found an Item?")
+    st.write("Thank you for helping! Please select the zone where you found this item to alert the school coordinator anonymously.")
+    
+    # Simulate scanning an item ID (or use query params)
+    scanned_id = st.selectbox("Select Scanned Item ID", list(st.session_state.items_db.keys()))
+    
+    if scanned_id:
+        item = st.session_state.items_db[scanned_id]
+        st.info(f"**Item Type:** {item['item_name']} (Owner details remain hidden for privacy)")
+        
+        found_zone = st.selectbox("Where did you find it?", ["Cafeteria", "Sports Ground", "Main Hall", "Library", "Bus Bay"])
+        
+        if st.button("Notify School Coordinator"):
+            # Update item status in database
+            st.session_state.items_db[scanned_id]["zone"] = found_zone
+            st.session_state.items_db[scanned_id]["status"] = "Found"
             
-            st.success(f"Generated! ID: **{item_id}**")
+            st.success("✅ Alert sent successfully to the school coordinator! Thank you for being a good citizen.")
 
-            # Encode the full live web app URL with the item ID so scanning opens it directly
-            app_url = f"https://penfvm3xpyxjjm2xwi6iyk.streamlit.app/?item={item_id}"
-
-            # Generate high-contrast QR code image containing the live link
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_M,
-                box_size=10,
-                border=4,
-            )
-            qr.add_data(app_url)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
+# ==========================================
+# 3. SECURE ADMIN DASHBOARD (Two-Layer Security)
+# ==========================================
+elif app_mode == "🔒 Staff Admin Dashboard":
+    st.title("🏫 School Coordinator Portal")
+    
+    # Check if admin is logged in
+    if not st.session_state.admin_logged_in:
+        st.subheader("🔐 Two-Layer Secure Verification")
+        st.write("Please enter your authorized credentials to access active campus alerts.")
+        
+        # --- LAYER 1: PHONE NUMBER WHITELIST CHECK ---
+        entered_phone = st.text_input("Enter Registered Coordinator Phone Number", placeholder="+919876543210")
+        
+        if entered_phone:
+            if entered_phone in AUTHORIZED_ADMINS:
+                st.success("Phone number recognized. Please enter your security code.")
+                
+                # --- LAYER 2: PRE-SHARED SECRET CODE CHECK ---
+                entered_code = st.text_input("Enter Secret Access Code", type="password", placeholder="****")
+                
+                if st.button("Verify & Enter Dashboard"):
+                    if entered_code == AUTHORIZED_ADMINS[entered_phone]:
+                        st.session_state.admin_logged_in = True
+                        st.success("Access Granted! Loading dashboard...")
+                        st.rerun()
+                    else:
+                        st.error("Incorrect secret access code. Please try again.")
+            else:
+                st.error("Access Denied: This phone number is not authorized as a school administrator.")
+                
+    else:
+        # --- UNLOCKED ADMIN DASHBOARD ---
+        if st.sidebar.button("Log Out of Admin"):
+            st.session_state.admin_logged_in = False
+            st.rerun()
             
-            buf = BytesIO()
-            img.save(buf, format="PNG")
-
-            st.image(buf.getvalue(), caption=f"Tag for {item_name} ({student_name})")
-            st.info("📱 When parents scan this QR code with their phone camera, it will instantly open the item details!")
+        st.header("📊 Live Active Alerts Dashboard")
+        st.write("Review items reported found across campus and manage student reunifications.")
+        
+        # Filter items that are currently "Found"
+        found_items = {item_id: details for item_id, details in st.session_state.items_db.items() if details["status"] == "Found"}
+        
+        if found_items:
+            st.warning(f"⚠️ You have {len(found_items)} item(s) waiting for pickup.")
+            
+            for item_id, details in found_items.items():
+                with st.container(border=True):
+                    st.subheader(f"📦 Item ID: {item_id}")
+                    st.write(f"**Item:** {details['item_name']}")
+                    st.write(f"**Found At Zone:** {details['zone']}")
+                    st.markdown(f"**Owner Details:** {details['name']} (Class: {details['class']})")
+                    
+                    if st.button(f"Mark as Returned & Resolve ({item_id})", key=item_id):
+                        st.session_state.items_db[item_id]["status"] = "Returned"
+                        st.success(f"Item {item_id} marked as successfully returned!")
+                        st.rerun()
         else:
-            st.error("Please fill in all details.")
-
-# ========================================
-# TAB 2: FINDER VIEW (MANUAL LOOKUP)
-# ========================================
-with tab2:
-    st.subheader("Found an Item?")
-    st.write("Enter its ID to notify the owner.")
+            st.info("🎉 All clear! No active lost items reported right now.")
     
-    found_id = st.text_input("Enter Item ID (from QR tag):", key="manual_id")
-    
-    if found_id:
-        if found_id in st.session_state.items_db:
-            item_info = st.session_state.items_db[found_id]
-            st.info(f"Looking up item: **{found_id}** ({item_info['item_name']} - {item_info['name']})")
-        else:
-            st.info(f"Looking up item ID: **{found_id}**")
-            
-        zone_options = ["Main Gate", "Cafeteria", "Science Block", "Sports Ground", "Library", "Bus Bay"]
-        found_zone = st.selectbox("Select Campus Zone where found:", zone_options, key="manual_zone")
-        
-        finder_message = st.text_area("Optional message for owner:", key="manual_msg")
-        
-        if st.button("Notify Owner & Claim Karma", key="manual_btn"):
-            st.success("🎉 Notification sent to owner! Thank you for being an honest finder.")
-            st.balloons()
-
-# ========================================
-# TAB 3: KARMA HUB (LEADERBOARD)
-# ========================================
-with tab3:
-    st.subheader("🏆 Honest Finder Karma Hub")
-    st.write("Recognizing students who make our school trustworthy and safe.")
-    
-    st.markdown("""
-    | Rank | Student Name | Class | Karma Points | Badges |
-    | :--- | :--- | :--- | :--- | :--- |
-    | 🥇 | Aarav Sharma | 8-A | 250 | 🌟 Super Finder |
-    | 🥈 | Diya Patel | 9-C | 190 | 🛡️ Honest Hero |
-    | 🥉 | Rohan Verma | 7-B | 150 | 🤝 Good Samaritan |
-    """)
-    
-    st.info("💡 Return lost items using SafeReturn to earn karma points and school recognition badges!")
-        
