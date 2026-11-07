@@ -72,7 +72,8 @@ with tab1:
             st.success(f"Generated! ID: **{item_id}**")
 
             # Encode the full live web app URL with the item ID so scanning opens it directly
-            app_url = f"https://i6iyk.streamlit.app/?item={item_id}"
+            app_url = f"https://penfvm3xpyxjjm2xwi6iyk.streamlit.app/?item={item_id}"
+            
 
             # Generate high-contrast QR code image containing the live link
             qr = qrcode.QRCode(
